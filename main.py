@@ -22,6 +22,10 @@ for i in range(10000):
     result.append((y[-1]))
 
 print(max(result), min(result), sum(result)/len(result))
+result = np.array(result)
+low_bound = np.percentile(result, 2.5)
+high_bound = np.percentile(result, 97.5)
+filtered_result = np.array(result[(result >= low_bound) & (result <= high_bound)])
 fig, axs = plt.subplots(1, sharey=True, tight_layout=True)
-axs.hist(result, bins=100)
+axs.hist(filtered_result, bins=75)
 plt.show()
