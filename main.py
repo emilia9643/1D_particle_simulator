@@ -1,31 +1,77 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy import stats
 
-N=100
-
+p_values = [0.4, 0.5, 0.6] 
+N_values = [50, 100, 200]
+M = 1000
 def symulacja(N, p):
-    x=np.arange(N)
-    y=np.zeros(N)
-    l=0
-    for i in range(N):
-        r=np.random.rand()
-        if r<p:
-            y[i]=l+1
-            l+=1
+    y = np.zeros(N + 1)
+    y[0] = 0
+    l = 0
+    for i in range(1, N + 1):
+        r = np.random.rand()
+        if r < p:
+            l += 1
         else:
-            y[i]=l-1
-            l=l-1
-    return x,y
-result=[]
-for i in range(10000):
-    x,y=symulacja(100, 0.5)
-    result.append((y[-1]))
+            l -= 1
+        y[i] = l
+    return np.arange(N + 1), y
 
-print(max(result), min(result), sum(result)/len(result))
-result = np.array(result)
-low_bound = np.percentile(result, 2.5)
-high_bound = np.percentile(result, 97.5)
-filtered_result = np.array(result[(result >= low_bound) & (result <= high_bound)])
-fig, axs = plt.subplots(1, sharey=True, tight_layout=True)
-axs.hist(filtered_result, bins=75)
+# przykladowe trajektorie dla p=0.35 i N=100
+for i in N_values:
+    plt.figure(figsize=(10, 6))
+    for j in range(5):
+        x_traj, y_traj = symulacja(i, 0.35)
+        plt.plot(x_traj, y_traj, label=f'Symulacja {j+1}')
+    plt.title(f'Przykładowe trajektorie (p=0.35, N={i})')
+    plt.xlabel('Krok')
+    plt.ylabel('Pozycja')
+    plt.legend()
+    plt.show()
+
+#histogramy pozycji koncowych dla roznych p przy N=100
+plt.figure(figsize=(12, 5))
+N_fix = 100
+for idx, p in enumerate(p_values):
+    final_positions = []
+    for m in range(M):
+        m, y = symulacja(N_fix, p)
+        final_positions.append(y[-1])
+    
+    plt.subplot(1, 3, idx+1)
+    plt.hist(final_positions, bins=30, density=True, alpha=0.7)
+    plt.title(f'Histogram p={p}')
+    plt.xlabel('Pozycja końcowa')
+
+plt.tight_layout()
+plt.show()
+
+plt.figure(figsize=(10, 6))
+
+for p in p_values:
+    means = []
+    cis = []
+    
+    for N in N_values:
+        final_positions = []
+        for _ in range(M):
+            _, y = symulacja(N, p)
+            final_positions.append(y[-1])
+             
+        mean_pos = np.mean(final_positions)
+        std_dev = np.std(final_positions, ddof=1)
+        sem = std_dev / np.sqrt(M)
+        ci_width = stats.t.ppf(0.975, df=M-1) * sem
+        
+        means.append(mean_pos)
+        cis.append(ci_width)
+
+    plt.errorbar(N_values, means, yerr=cis, fmt='-o', label=f'p={p}')
+
+plt.title('srednia pozycja końcowa vs N (z 95% CI)')
+plt.xlabel('liczba krokow N')
+plt.ylabel('srednia pozycja')
+plt.legend()
+plt.grid(True)
 plt.show()
